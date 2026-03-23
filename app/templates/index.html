@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_name }} - Smart Voice Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        jarvis: {
+                            dark: '#0a0e17',
+                            darker: '#060912',
+                            accent: '#00d4ff',
+                            accent2: '#7c3aed',
+                            surface: '#111827',
+                            surface2: '#1f2937',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-full bg-jarvis-dark text-gray-100 dark">
+    <div class="flex h-full">
+
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-72 bg-jarvis-darker border-r border-gray-800 flex flex-col">
+            <!-- Logo -->
+            <div class="p-4 border-b border-gray-800">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-jarvis-accent to-jarvis-accent2 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold bg-gradient-to-r from-jarvis-accent to-jarvis-accent2 bg-clip-text text-transparent">JARVIS</h1>
+                        <p class="text-xs text-gray-500">Smart Assistant</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Chat Button -->
+            <div class="p-3">
+                <button id="new-chat-btn" class="w-full py-2.5 px-4 rounded-lg border border-gray-700 hover:border-jarvis-accent hover:bg-jarvis-surface transition-all text-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    New Conversation
+                </button>
+            </div>
+
+            <!-- Conversation List -->
+            <div id="conversation-list" class="flex-1 overflow-y-auto px-3 space-y-1">
+                <!-- Conversations loaded dynamically -->
+            </div>
+
+            <!-- Status Bar -->
+            <div class="p-3 border-t border-gray-800">
+                <div class="flex items-center gap-2 text-xs text-gray-500">
+                    <span id="connection-dot" class="w-2 h-2 rounded-full bg-red-500"></span>
+                    <span id="connection-status">Disconnected</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="flex-1 flex flex-col">
+            <!-- Header -->
+            <header class="h-14 border-b border-gray-800 flex items-center justify-between px-6">
+                <div class="flex items-center gap-3">
+                    <h2 id="chat-title" class="text-sm font-medium text-gray-300">New Conversation</h2>
+                </div>
+                <div class="flex items-center gap-3">
+                    <!-- TTS Toggle -->
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <span class="text-xs text-gray-500">TTS</span>
+                        <div class="relative">
+                            <input type="checkbox" id="tts-toggle" class="sr-only peer">
+                            <div class="w-9 h-5 bg-gray-700 rounded-full peer-checked:bg-jarvis-accent transition-colors"></div>
+                            <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></div>
+                        </div>
+                    </label>
+                    <!-- Settings Button -->
+                    <button id="settings-btn" class="p-2 rounded-lg hover:bg-jarvis-surface transition-colors">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Messages Area -->
+            <div id="messages" class="flex-1 overflow-y-auto p-6 space-y-4">
+                <!-- Welcome Message -->
+                <div id="welcome-msg" class="flex flex-col items-center justify-center h-full text-center">
+                    <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-jarvis-accent to-jarvis-accent2 flex items-center justify-center mb-6 animate-pulse-slow">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold bg-gradient-to-r from-jarvis-accent to-jarvis-accent2 bg-clip-text text-transparent mb-2">Hello, I'm Jarvis</h2>
+                    <p class="text-gray-500 max-w-md">Your intelligent voice assistant. Type a message or click the microphone to start a conversation.</p>
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div id="typing-indicator" class="hidden px-6 pb-2">
+                <div class="flex items-center gap-2 text-sm text-gray-400">
+                    <div class="typing-dots flex gap-1">
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                    </div>
+                    <span id="typing-text">Jarvis is thinking...</span>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="border-t border-gray-800 p-4">
+                <div class="max-w-4xl mx-auto flex items-end gap-3">
+                    <div class="flex-1 relative">
+                        <textarea
+                            id="message-input"
+                            placeholder="Type your message..."
+                            rows="1"
+                            class="w-full bg-jarvis-surface border border-gray-700 rounded-xl px-4 py-3 pr-12 text-sm resize-none focus:outline-none focus:border-jarvis-accent transition-colors placeholder-gray-600"
+                        ></textarea>
+                    </div>
+                    <!-- Send Button -->
+                    <button id="send-btn" class="p-3 rounded-xl bg-jarvis-accent hover:bg-cyan-400 transition-colors text-jarvis-dark" title="Send message">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
+                    </button>
+                    <!-- Mic Button -->
+                    <button id="mic-btn" class="p-3 rounded-xl bg-jarvis-surface border border-gray-700 hover:border-jarvis-accent2 hover:bg-jarvis-surface2 transition-all" title="Hold to record voice">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="bg-jarvis-surface border border-gray-700 rounded-2xl p-6 w-96 max-w-[90vw]">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold">Settings</h3>
+                <button id="close-settings" class="p-1 rounded-lg hover:bg-jarvis-surface2 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-sm text-gray-400 block mb-1">TTS Voice</label>
+                    <select id="tts-voice-select" class="w-full bg-jarvis-dark border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-jarvis-accent">
+                        <option value="alloy">Alloy</option>
+                        <option value="echo">Echo</option>
+                        <option value="fable">Fable</option>
+                        <option value="onyx">Onyx</option>
+                        <option value="nova">Nova</option>
+                        <option value="shimmer">Shimmer</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-sm text-gray-400 block mb-1">System Status</label>
+                    <div id="system-status" class="text-xs text-gray-500 bg-jarvis-dark rounded-lg p-3 font-mono">
+                        Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/websocket.js"></script>
+    <script src="/static/js/audio.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
