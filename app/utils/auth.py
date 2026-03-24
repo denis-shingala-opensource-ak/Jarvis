@@ -60,7 +60,7 @@ def generate_token(email: str):
         user = db.query(User).filter(User.email == email).first()
 
         if user is not None:
-            expire_time = datetime.now(timezone.utc) + timedelta(minutes=1)
+            expire_time = datetime.now(timezone.utc) + timedelta(hours=1)
             token = jwt.encode({
                 "user_id": user.id,
                 "email": email,

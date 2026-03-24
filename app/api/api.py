@@ -1,6 +1,6 @@
 """REST API endpoints."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.templating import Jinja2Templates
 
 from app.core.config import settings
@@ -30,3 +30,11 @@ def list_conversations():
 def get_messages(conversation_id: str):
     """Get messages for a specific conversation."""
     return db.get_conversation_history(conversation_id)
+
+@router.delete("/conversations/{conversation_id}")
+def delete_conversation(conversation_id: str):
+    """Soft-delete a conversation."""
+    deleted = db.delete_conversation(conversation_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return {"status": "deleted"}

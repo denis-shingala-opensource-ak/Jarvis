@@ -133,23 +133,33 @@
 
             <!-- Input Area -->
             <div class="border-t border-gray-800 p-4">
-                <div class="max-w-4xl mx-auto flex items-end gap-3">
+                <!-- File Preview Bar -->
+                <div id="file-preview-bar" class="hidden max-w-4xl mx-auto mb-2 flex flex-wrap gap-2"></div>
+
+                <div class="max-w-4xl mx-auto flex items-end gap-2">
+                    <!-- File Upload Button -->
+                    <input type="file" id="file-input" multiple class="hidden" accept="image/*,.pdf,.txt,.csv,.json,.md,.py,.js,.ts,.html,.css,.xml,.doc,.docx,.xls,.xlsx">
+                    <button id="file-btn" class="shrink-0 h-[46px] w-[46px] flex items-center justify-center rounded-xl bg-jarvis-surface border border-gray-700 hover:border-jarvis-accent hover:bg-jarvis-surface2 transition-all mb-2" title="Attach files">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                        </svg>
+                    </button>
                     <div class="flex-1 relative">
                         <textarea
                             id="message-input"
                             placeholder="Type your message..."
                             rows="1"
-                            class="w-full bg-jarvis-surface border border-gray-700 rounded-xl px-4 py-3 pr-12 text-sm resize-none focus:outline-none focus:border-jarvis-accent transition-colors placeholder-gray-600"
+                            class="w-full bg-jarvis-surface border border-gray-700 rounded-xl px-4 py-3 pr-12 text-sm resize-none focus:outline-none focus:border-jarvis-accent transition-colors placeholder-gray-600 leading-5 min-h-[40px]"
                         ></textarea>
                     </div>
                     <!-- Send Button -->
-                    <button id="send-btn" class="p-3 rounded-xl bg-jarvis-accent hover:bg-cyan-400 transition-colors text-jarvis-dark" title="Send message">
+                    <button id="send-btn" class="shrink-0 h-[46px] w-[46px] flex items-center justify-center rounded-xl bg-jarvis-accent hover:bg-cyan-400 transition-colors text-jarvis-dark mb-2" title="Send message">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                         </svg>
                     </button>
                     <!-- Mic Button -->
-                    <button id="mic-btn" class="p-3 rounded-xl bg-jarvis-surface border border-gray-700 hover:border-jarvis-accent2 hover:bg-jarvis-surface2 transition-all" title="Hold to record voice">
+                    <button id="mic-btn" class="shrink-0 h-[46px] w-[46px] flex items-center justify-center rounded-xl bg-jarvis-surface border border-gray-700 hover:border-jarvis-accent2 hover:bg-jarvis-surface2 transition-all mb-2" title="Hold to record voice">
                         <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
                         </svg>

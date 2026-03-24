@@ -20,7 +20,126 @@ window.addEventListener("load", () => {
     const closeSettings = document.getElementById("close-settings");
     const conversationList = document.getElementById("conversation-list");
 
+    const fileBtn = document.getElementById("file-btn");
+    const fileInput = document.getElementById("file-input");
+    const filePreviewBar = document.getElementById("file-preview-bar");
+
     let currentConversationId = null;
+    let pendingFiles = []; // {name, type, size, base64}
+
+    // ========================
+    // File Upload
+    // ========================
+    fileBtn.addEventListener("click", () => fileInput.click());
+
+    fileInput.addEventListener("change", () => {
+        const files = Array.from(fileInput.files);
+        files.forEach((file) => {
+            if (file.size > 10 * 1024 * 1024) {
+                addMessage("assistant", `File "${file.name}" exceeds 10MB limit.`, true);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+                const base64 = reader.result.split(",")[1];
+                pendingFiles.push({
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    base64: base64,
+                });
+                renderFilePreview();
+            };
+            reader.readAsDataURL(file);
+        });
+        fileInput.value = "";
+    });
+
+    // Drag & drop on message input area
+    const inputArea = messageInput.closest(".border-t");
+    inputArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        inputArea.classList.add("border-jarvis-accent");
+    });
+    inputArea.addEventListener("dragleave", () => {
+        inputArea.classList.remove("border-jarvis-accent");
+    });
+    inputArea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        inputArea.classList.remove("border-jarvis-accent");
+        const files = Array.from(e.dataTransfer.files);
+        files.forEach((file) => {
+            if (file.size > 10 * 1024 * 1024) {
+                addMessage("assistant", `File "${file.name}" exceeds 10MB limit.`, true);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+                const base64 = reader.result.split(",")[1];
+                pendingFiles.push({
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    base64: base64,
+                });
+                renderFilePreview();
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+
+    function renderFilePreview() {
+        filePreviewBar.innerHTML = "";
+        if (pendingFiles.length === 0) {
+            filePreviewBar.classList.add("hidden");
+            return;
+        }
+        filePreviewBar.classList.remove("hidden");
+
+        pendingFiles.forEach((file, index) => {
+            const tag = document.createElement("div");
+            tag.className = "flex items-center gap-2 bg-jarvis-surface border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-300";
+
+            const isImage = file.type.startsWith("image/");
+            if (isImage) {
+                const thumb = document.createElement("img");
+                thumb.src = `data:${file.type};base64,${file.base64}`;
+                thumb.className = "w-6 h-6 rounded object-cover";
+                tag.appendChild(thumb);
+            } else {
+                const icon = document.createElement("span");
+                icon.innerHTML = `<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`;
+                tag.appendChild(icon);
+            }
+
+            const nameSpan = document.createElement("span");
+            nameSpan.textContent = file.name.length > 20 ? file.name.slice(0, 17) + "..." : file.name;
+            nameSpan.title = file.name;
+            tag.appendChild(nameSpan);
+
+            const sizeSpan = document.createElement("span");
+            sizeSpan.className = "text-gray-500";
+            sizeSpan.textContent = formatFileSize(file.size);
+            tag.appendChild(sizeSpan);
+
+            const removeBtn = document.createElement("button");
+            removeBtn.className = "text-gray-500 hover:text-red-400 transition-colors ml-1";
+            removeBtn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`;
+            removeBtn.addEventListener("click", () => {
+                pendingFiles.splice(index, 1);
+                renderFilePreview();
+            });
+            tag.appendChild(removeBtn);
+
+            filePreviewBar.appendChild(tag);
+        });
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+        return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    }
 
     // ========================
     // WebSocket Setup
@@ -75,14 +194,31 @@ window.addEventListener("load", () => {
         if (!text) return;
 
         hideWelcome();
-        addMessage("user", text);
-        messageInput.value = "";
-        autoResize();
 
-        jarvisWS.sendText(text, {
+        // Build display message
+        let displayMsg = text;
+        if (pendingFiles.length > 0) {
+            const fileNames = pendingFiles.map(f => f.name).join(", ");
+            displayMsg = text ? `${text}\n📎 ${fileNames}` : `📎 ${fileNames}`;
+        }
+        addMessage("user", displayMsg);
+
+        // Send files as array of {name, type, size, base64}
+        const filesToSend = pendingFiles.length > 0
+            ? pendingFiles.map(f => ({ name: f.name, type: f.type, size: f.size, base64: f.base64 }))
+            : null;
+
+        jarvisWS.sendText(text || "", {
             conversationId: currentConversationId,
             ttsEnabled: ttsToggle.checked,
+            files: filesToSend,
         });
+
+        // Clear pending files
+        pendingFiles = [];
+        renderFilePreview();
+        messageInput.value = "";
+        autoResize();
     }
 
     function addMessage(role, content, isError = false) {
@@ -209,15 +345,31 @@ window.addEventListener("load", () => {
 
             conversationList.innerHTML = "";
             conversations.forEach((conv) => {
-                const item = document.createElement("button");
-                item.className = `w-full text-left px-3 py-2 rounded-lg text-sm truncate transition-colors ${
-                    conv.conversation_id === currentConversationId
+                const item = document.createElement("div");
+                const isActive = conv.conversation_id === currentConversationId;
+                item.className = `group flex items-center gap-1 rounded-lg transition-colors ${
+                    isActive
                         ? "bg-jarvis-surface text-jarvis-accent"
                         : "text-gray-400 hover:bg-jarvis-surface hover:text-gray-200"
                 }`;
-                item.textContent = conv.title || "Untitled";
-                item.title = conv.title;
-                item.addEventListener("click", () => loadConversation(conv.conversation_id));
+
+                const titleBtn = document.createElement("button");
+                titleBtn.className = "flex-1 text-left px-3 py-2 text-sm truncate";
+                titleBtn.textContent = conv.title || "Untitled";
+                titleBtn.title = conv.title;
+                titleBtn.addEventListener("click", () => loadConversation(conv.conversation_id));
+
+                const deleteBtn = document.createElement("button");
+                deleteBtn.className = "shrink-0 p-1.5 mr-1 rounded-md opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all";
+                deleteBtn.title = "Delete conversation";
+                deleteBtn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>`;
+                deleteBtn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    deleteConversation(conv.conversation_id);
+                });
+
+                item.appendChild(titleBtn);
+                item.appendChild(deleteBtn);
                 conversationList.appendChild(item);
             });
         } catch (err) {
@@ -244,6 +396,22 @@ window.addEventListener("load", () => {
             loadConversations();
         } catch (err) {
             console.error("Failed to load conversation:", err);
+        }
+    }
+
+    async function deleteConversation(conversationId) {
+        try {
+            const res = await fetch(`/api/conversations/${conversationId}`, { method: "DELETE" });
+            if (!res.ok) return;
+
+            if (currentConversationId === conversationId) {
+                currentConversationId = null;
+                clearMessages();
+                chatTitle.textContent = "New Conversation";
+            }
+            loadConversations();
+        } catch (err) {
+            console.error("Failed to delete conversation:", err);
         }
     }
 

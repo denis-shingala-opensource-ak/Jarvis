@@ -74,6 +74,7 @@ class JarvisWebSocket {
             content: content,
             conversation_id: options.conversationId || null,
             tts_enabled: options.ttsEnabled !== undefined ? options.ttsEnabled : true,
+            files: options.files || null,
         };
 
         this.ws.send(JSON.stringify(message));

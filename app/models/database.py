@@ -1,6 +1,6 @@
 """MySQL database for conversation persistence."""
 from fastapi import Depends
-from sqlalchemy import VARCHAR, Null, create_engine, Column, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import VARCHAR, Enum, Null, create_engine, Column, Integer, String, Text, Boolean, DateTime, ForeignKey
 from sqlalchemy_utils import database_exists, create_database
 from datetime import datetime, timezone
 from typing import Annotated, Optional
@@ -48,6 +48,7 @@ class Conversation(Base):
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    is_deleted = Column(Integer, default=0)
 
     user = relationship("User", back_populates="conversations")
     messages = relationship("Message", back_populates="conversation")
@@ -111,7 +112,7 @@ def get_conversations(
     user_id: int
 ) -> dict[str, list[dict]]:
     """Retrieve all conversations as {conversation_id: [messages]}."""
-    rows = db.query(Conversation).filter(Conversation.user_id == user_id).all()
+    rows = db.query(Conversation).filter(Conversation.user_id == user_id, Conversation.is_deleted == 0).all()
     result = {}
     for row in rows:
         messages = db.query(Message).filter(Message.conversation_id == row.id).order_by(Message.id).all()
@@ -139,7 +140,7 @@ def get_conversation_history(
 
 def list_conversations() -> list[dict]:
     """List all conversations with message counts."""
-    rows = db.query(Conversation).group_by(Conversation.id).order_by(Conversation.updated_at.desc()).all()
+    rows = db.query(Conversation).filter(Conversation.is_deleted == 0).group_by(Conversation.id).order_by(Conversation.updated_at.desc()).all()
     result = []
     for row in rows:
         message_count = db.query(Message).filter(Message.conversation_id == row.id).count()
@@ -150,4 +151,17 @@ def list_conversations() -> list[dict]:
             "created_at": row.created_at,
             "updated_at": row.updated_at,
         })
-    return result 
+    return result
+
+
+def delete_conversation(conversation_id: str) -> bool:
+    """Soft-delete a conversation."""
+    try:
+        row = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+        if not row:
+            return False
+        row.is_deleted = 1
+        db.commit()
+        return True
+    finally:
+        db.close()
