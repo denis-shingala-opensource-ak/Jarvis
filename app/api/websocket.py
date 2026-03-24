@@ -7,10 +7,10 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.services.chat_manager import ChatManager
 from app.models.schemas import WebSocketMessage
 from app.core.logging_config import logger
+from app.utils.auth import ws_user_dependency
 
 router = APIRouter()
 chat_manager = ChatManager()
-
 
 class ConnectionManager:
     """Manages active WebSocket connections."""
@@ -36,15 +36,19 @@ manager = ConnectionManager()
 
 
 @router.websocket("/ws/chat")
-async def websocket_chat(websocket: WebSocket):
+async def websocket_chat(websocket: WebSocket, user: ws_user_dependency):
     await manager.connect(websocket)
     conversation_id = None
+
+    if user is None:
+        await websocket.close(code=1008, reason="Unauthorized")
+        return
 
     try:
         while True:
             raw_data = await websocket.receive_text()
             msg = WebSocketMessage(**json.loads(raw_data))
-            print(msg)
+
             if msg.type == "text":
                 # Send typing indicator
                 await manager.send_json(websocket, {"type": "typing", "status": True})
@@ -52,6 +56,7 @@ async def websocket_chat(websocket: WebSocket):
                     text=msg.content,
                     conversation_id=msg.conversation_id or conversation_id,
                     tts_enabled=msg.tts_enabled,
+                    user_id=user.user_id
                 )
 
                 conversation_id = response.conversation_id

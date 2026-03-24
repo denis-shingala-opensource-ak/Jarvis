@@ -106,10 +106,10 @@ if (loginForm) {
         spinner.classList.remove("hidden");
 
         try {
-            const res = await fetch("/api/auth/login", {
+            const res = await fetch("/auth/", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ username: email, password: password }),
             });
 
             const data = await res.json();
@@ -119,8 +119,6 @@ if (loginForm) {
                 return;
             }
 
-            // Store token and redirect
-            localStorage.setItem("access_token", data.access_token);
             window.location.href = "/";
         } catch (err) {
             showError("Unable to connect to server. Please try again.");
@@ -138,7 +136,9 @@ if (registerForm) {
         e.preventDefault();
         hideError();
 
-        const fullName = document.getElementById("full-name").value.trim();
+        const firstName = document.getElementById("first-name").value.trim();
+        const middleName = document.getElementById("middle-name").value.trim();
+        const lastName = document.getElementById("last-name").value.trim();
         const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value;
         const confirmPassword = document.getElementById("confirm-password").value;
@@ -159,10 +159,10 @@ if (registerForm) {
         spinner.classList.remove("hidden");
 
         try {
-            const res = await fetch("/api/auth/register", {
+            const res = await fetch("/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ full_name: fullName, email, password }),
+                body: JSON.stringify({ first_name: firstName, middle_name: middleName, last_name: lastName, email, password }),
             });
 
             const data = await res.json();

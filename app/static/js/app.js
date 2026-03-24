@@ -1,7 +1,7 @@
 /**
  * Jarvis Dashboard - Main Application Controller
  */
-document.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("load", () => {
     // DOM elements
     const messagesEl = document.getElementById("messages");
     const welcomeMsg = document.getElementById("welcome-msg");

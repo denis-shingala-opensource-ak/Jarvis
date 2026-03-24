@@ -2,7 +2,6 @@
 import io
 import base64
 import asyncio
-import tempfile
 
 from app.core.config import settings
 from app.core.exceptions import SpeechServiceError, ConfigurationError

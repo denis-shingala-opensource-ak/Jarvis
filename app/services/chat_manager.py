@@ -8,7 +8,7 @@ from app.core.logging_config import logger
 from app.services.llm_service import create_llm_service, BaseLLMService
 from app.services.speech_service import SpeechService
 from app.models.schemas import ChatResponse
-from app.models import database as db
+from app.models.database import get_conversation_history, get_conversations, save_message
 
 
 class ChatManager:
@@ -18,8 +18,10 @@ class ChatManager:
         # In-memory conversation cache: {conversation_id: [messages]}
         self._conversations: dict[str, list[dict]] = {}
 
-    def _get_or_create_conversation(self, conversation_id: Optional[str] = None) -> str:
+    def _get_or_create_conversation(self, conversation_id: Optional[str] = None, user_id: str = None) -> str:
         """Return existing or create new conversation ID."""
+        self._conversations = get_conversations(user_id)
+        
         if conversation_id and conversation_id in self._conversations:
             return conversation_id
         new_id = conversation_id or str(uuid.uuid4())
@@ -41,9 +43,10 @@ class ChatManager:
         text: str,
         conversation_id: Optional[str] = None,
         tts_enabled: bool = False,
+        user_id: Optional[int] = None,
     ) -> ChatResponse:
         """Handle a text chat message."""
-        conv_id = self._get_or_create_conversation(conversation_id)
+        conv_id = self._get_or_create_conversation(conversation_id, user_id)
 
         # Add user message to history
         self._conversations[conv_id].append({"role": "user", "content": text})
@@ -58,8 +61,8 @@ class ChatManager:
         self._trim_history(conv_id)
 
         # Persist to DB
-        db.save_message(conv_id, "user", text)
-        db.save_message(conv_id, "assistant", response_text)
+        save_message(conv_id, "user", text, user_id=user_id)
+        save_message(conv_id, "assistant", response_text, user_id=user_id)
 
         # Optionally generate TTS
         audio_b64 = None
@@ -77,6 +80,7 @@ class ChatManager:
         self,
         audio_bytes: bytes,
         conversation_id: Optional[str] = None,
+        user_id: Optional[int] = None,
     ) -> ChatResponse:
         """Handle a voice message: STT -> LLM -> TTS."""
         # Transcribe audio to text
@@ -88,11 +92,12 @@ class ChatManager:
             text=transcribed_text,
             conversation_id=conversation_id,
             tts_enabled=True,
+            user_id=user_id,
         )
 
     async def get_history(self, conversation_id: str) -> list[dict]:
         """Return conversation history from DB."""
-        return await db.get_conversation_history(conversation_id)
+        return await get_conversation_history(conversation_id)
 
     def clear_conversation(self, conversation_id: str):
         """Remove a conversation from in-memory cache."""

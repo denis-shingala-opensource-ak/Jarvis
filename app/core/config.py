@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     # Speech
     STT_PROVIDER: Literal["google_free", "openai_whisper"] = "google_free"
     TTS_PROVIDER: Literal["google_free", "openai_tts"] = "google_free"
-    TTS_VOICE: str = "alloy"
+    TTS_VOICE: str = "onyx"
 
     # Database
     DATABASE_URL: str = ""

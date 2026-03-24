@@ -1,9 +1,9 @@
 """MySQL database for conversation persistence."""
 from fastapi import Depends
-from sqlalchemy import VARCHAR, Null, create_engine, text, Column, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import VARCHAR, Null, create_engine, Column, Integer, String, Text, Boolean, DateTime, ForeignKey
 from sqlalchemy_utils import database_exists, create_database
 from datetime import datetime, timezone
-from typing import Annotated, Generator, Optional
+from typing import Annotated, Optional
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Session
 
 from app.core.config import settings
@@ -18,10 +18,11 @@ db = local_session()
 
 Base = declarative_base()
 
-def __get_db(): 
+def __get_db():
+    db = local_session()
     try:
         yield db
-    except:
+    finally:
         db.close()
     
 db_dependency = Annotated[Session, Depends(__get_db)]
@@ -37,7 +38,7 @@ class User(Base):
     password = Column(Text, nullable=False)
     timestamp = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
-    conversations = relationship("Conversation", back_populates="users")
+    conversations = relationship("Conversation", back_populates="user")
 
 class Conversation(Base):
     __tablename__ = "conversations"
@@ -46,9 +47,9 @@ class Conversation(Base):
     title = Column(String(255), nullable=False)
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
-    user_id = Column(Integer, ForeignKey("users.id"), default=Null)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-    users = relationship("User", back_populates="conversation")
+    user = relationship("User", back_populates="conversations")
     messages = relationship("Message", back_populates="conversation")
 
 class Message(Base):
@@ -66,7 +67,7 @@ class Message(Base):
 # Create all tables automatically
 Base.metadata.create_all(engine)
 
-def ensure_conversation(conversation_id: str, title: Optional[str] = None):
+def ensure_conversation(conversation_id: str, title: Optional[str] = None, user_id: Optional[int] = None):
     """Create a conversation if it doesn't exist."""
     try:
         row = db.query(Conversation).filter(Conversation.id == conversation_id).first()
@@ -77,6 +78,7 @@ def ensure_conversation(conversation_id: str, title: Optional[str] = None):
                 title=title or "New Conversation",
                 created_at=now,
                 updated_at=now,
+                user_id=user_id
             )
             db.add(conversation)
             db.commit()
@@ -85,15 +87,15 @@ def ensure_conversation(conversation_id: str, title: Optional[str] = None):
 
 
 def save_message(
-    conversation_id: str, role: str, content: str, is_voice: bool = False
+    conversation_id: str, role: str, content: str, is_voice: bool = False, user_id: Optional[int] = None
 ):
     """Persist a single message."""
-    ensure_conversation(conversation_id)
+    ensure_conversation(conversation_id, user_id=user_id)
     now = datetime.now(timezone.utc).isoformat()
 
     try:
         new_message = Message(
-            converation_id=conversation_id,
+            conversation_id=conversation_id,
             role=role,
             content=content,
             is_voice=int(is_voice),
@@ -101,18 +103,23 @@ def save_message(
         )
 
         db.add(new_message)
-        db.flush()
-
-        conversation = Conversation(
-            now=now,
-            role=role,
-            title=content[:50],
-            id=conversation_id
-        )
-        db.add(conversation)
         db.commit()
     finally:
         db.close()
+
+def get_conversations(
+    user_id: int
+) -> dict[str, list[dict]]:
+    """Retrieve all conversations as {conversation_id: [messages]}."""
+    rows = db.query(Conversation).filter(Conversation.user_id == user_id).all()
+    result = {}
+    for row in rows:
+        messages = db.query(Message).filter(Message.conversation_id == row.id).order_by(Message.id).all()
+        result[row.id] = [
+            {"role": msg.role, "content": msg.content}
+            for msg in messages
+        ]
+    return result
 
 def get_conversation_history(
     conversation_id: str, limit: int = 50
@@ -121,10 +128,10 @@ def get_conversation_history(
     rows = db.query(Message).filter(Message.conversation_id == conversation_id).limit(limit).all()
     return [
         {
-            "role": row["role"],
-            "content": row["content"],
-            "is_voice": bool(row["is_voice"]),
-            "timestamp": row["timestamp"],
+            "role": row.role,
+            "content": row.content,
+            "is_voice": bool(row.is_voice),
+            "timestamp": row.timestamp,
         }
         for row in rows
     ]
@@ -132,15 +139,15 @@ def get_conversation_history(
 
 def list_conversations() -> list[dict]:
     """List all conversations with message counts."""
-    rows = db.query(Conversation).group_by(Conversation.id).order_by(Conversation.updated_at, 'DESC').all()
-
-    return [
-        {
-            "conversation_id": row["id"],
-            "title": row["title"],
-            "message_count": row["message_count"],
-            "created_at": row["created_at"],
-            "updated_at": row["updated_at"],
-        }
-        for row in rows
-    ]
+    rows = db.query(Conversation).group_by(Conversation.id).order_by(Conversation.updated_at.desc()).all()
+    result = []
+    for row in rows:
+        message_count = db.query(Message).filter(Message.conversation_id == row.id).count()
+        result.append({
+            "conversation_id": row.id,
+            "title": row.title,
+            "message_count": message_count,
+            "created_at": row.created_at,
+            "updated_at": row.updated_at,
+        })
+    return result 

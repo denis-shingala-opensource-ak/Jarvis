@@ -19,3 +19,8 @@ class SpeechServiceError(JarvisError):
 class ConfigurationError(JarvisError):
     """Invalid or missing configuration."""
     pass
+
+
+class AuthRedirectException(Exception):
+    """Raised when user is not authenticated and should be redirected to login."""
+    pass

@@ -1,27 +1,14 @@
 """FastAPI application factory."""
-from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import routes, websocket
+from app.api import api, auth, websocket
+from app.api import common
+from app.api.common import lifespan
 from app.core.config import settings
-from app.core.logging_config import logger
-from app.models.database import engine
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Startup and shutdown events."""
-    logger.info(f"Starting {settings.APP_NAME}...")
-    logger.info("Database initialized.")
-    logger.info(f"LLM Provider: {settings.LLM_PROVIDER} ({settings.LLM_MODEL})")
-    logger.info(f"STT Provider: {settings.STT_PROVIDER}")
-    logger.info(f"TTS Provider: {settings.TTS_PROVIDER}")
-    yield
-    logger.info(f"Shutting down {settings.APP_NAME}...")
-    engine.dispose()
-
+from app.utils.auth import AuthRedirectException
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -30,9 +17,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+@app.exception_handler(AuthRedirectException)
+async def auth_redirect_handler(request: Request, exc: AuthRedirectException):
+    return RedirectResponse(url="/login", status_code=302)
+
 # Mount static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Include routers
-app.include_router(routes.router)
+app.include_router(api.router)
+app.include_router(auth.router)
+app.include_router(common.router)
 app.include_router(websocket.router)

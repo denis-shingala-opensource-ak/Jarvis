@@ -35,6 +35,10 @@ class JarvisWebSocket {
 
         this.ws.onclose = (event) => {
             console.log("WebSocket closed:", event.code);
+            if (event.code === 1008) {
+                window.location.href = "/login";
+                return;
+            }
             if (this.onStatusChange) {
                 this.onStatusChange(false);
             }

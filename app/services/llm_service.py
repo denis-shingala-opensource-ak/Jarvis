@@ -1,7 +1,7 @@
 """LLM service with support for Google Gemini, OpenAI, and Anthropic Claude."""
 from abc import ABC, abstractmethod
 import token
-from typing import AsyncGenerator, Generator
+from typing import AsyncGenerator
 
 from ollama import AsyncClient
 

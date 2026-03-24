@@ -3,6 +3,12 @@ from pydantic import BaseModel, Field
 from typing import Optional, Literal
 from datetime import datetime, timezone
 
+class UserSchema(BaseModel):
+    first_name: Optional[str]
+    middle_name: Optional[str]
+    last_name: Optional[str]
+    email: str
+    password: str
 
 class ChatMessage(BaseModel):
     role: Literal["user", "assistant", "system"]
@@ -44,3 +50,9 @@ class WebSocketMessage(BaseModel):
     content: Optional[str] = None
     conversation_id: Optional[str] = None
     tts_enabled: bool = True
+
+
+class JWTToken(BaseModel):
+    email: str
+    user_id: int
+    exp: float
