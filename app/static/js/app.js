@@ -28,6 +28,40 @@ window.addEventListener("load", () => {
     let pendingFiles = []; // {name, type, size, base64}
 
     // ========================
+    // Theme Toggle
+    // ========================
+    const themeToggle = document.getElementById("theme-toggle");
+    const themeSun = document.getElementById("theme-sun");
+    const themeMoon = document.getElementById("theme-moon");
+
+    function applyTheme(theme) {
+        if (theme === "light") {
+            document.documentElement.classList.remove("dark");
+            document.documentElement.classList.add("light");
+            document.body.style.backgroundColor = "#f8fafc";
+            document.body.style.color = "#1e293b";
+            themeSun.classList.add("hidden");
+            themeMoon.classList.remove("hidden");
+        } else {
+            document.documentElement.classList.remove("light");
+            document.documentElement.classList.add("dark");
+            document.body.style.backgroundColor = "";
+            document.body.style.color = "";
+            themeMoon.classList.add("hidden");
+            themeSun.classList.remove("hidden");
+        }
+        localStorage.setItem("jarvis-theme", theme);
+    }
+
+    // Initialize theme icons
+    applyTheme(localStorage.getItem("jarvis-theme") || "dark");
+
+    themeToggle.addEventListener("click", () => {
+        const current = localStorage.getItem("jarvis-theme") || "dark";
+        applyTheme(current === "dark" ? "light" : "dark");
+    });
+
+    // ========================
     // File Upload
     // ========================
     fileBtn.addEventListener("click", () => fileInput.click());

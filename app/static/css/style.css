@@ -129,6 +129,290 @@ pre code {
     to { opacity: 1; }
 }
 
+/* ========================
+   Light Theme Overrides
+   ======================== */
+html.light body {
+    background-color: #f8fafc !important;
+    color: #1e293b !important;
+}
+
+html.light #sidebar {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+}
+
+html.light #sidebar .border-b,
+html.light #sidebar .border-t {
+    border-color: #e2e8f0 !important;
+}
+
+html.light #sidebar h1 {
+    background: linear-gradient(to right, #0ea5e9, #7c3aed) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+html.light #sidebar p,
+html.light #sidebar .text-gray-500,
+html.light #sidebar .text-xs {
+    color: #64748b !important;
+}
+
+html.light #new-chat-btn {
+    border-color: #cbd5e1 !important;
+    color: #334155 !important;
+}
+
+html.light #new-chat-btn:hover {
+    border-color: #0ea5e9 !important;
+    background-color: #f1f5f9 !important;
+}
+
+html.light #conversation-list .text-gray-400,
+html.light #conversation-list .text-gray-200 {
+    color: #334155 !important;
+}
+
+html.light #conversation-list button.text-sm {
+    color: #334155 !important;
+}
+
+html.light #conversation-list > div {
+    color: #334155 !important;
+}
+
+html.light #conversation-list > div:hover {
+    background-color: #f1f5f9 !important;
+}
+
+html.light #conversation-list .bg-jarvis-surface {
+    background-color: #e0f2fe !important;
+}
+
+html.light header {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+}
+
+html.light header .text-gray-300,
+html.light header .text-sm {
+    color: #334155 !important;
+}
+
+html.light header .text-gray-500,
+html.light header .text-xs {
+    color: #64748b !important;
+}
+
+html.light header .text-gray-400 {
+    color: #64748b !important;
+}
+
+html.light header button:hover {
+    background-color: #f1f5f9 !important;
+}
+
+html.light main {
+    background-color: #f8fafc !important;
+}
+
+html.light #messages {
+    background-color: #f8fafc !important;
+}
+
+html.light #welcome-msg h2 {
+    background: linear-gradient(to right, #0ea5e9, #7c3aed) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+html.light #welcome-msg p {
+    color: #64748b !important;
+}
+
+/* Assistant message bubbles */
+html.light .bg-jarvis-surface2 {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    color: #334155 !important;
+}
+
+/* User message bubbles */
+html.light [class*="bg-jarvis-accent/20"],
+html.light [class*="bg-jarvis-accent\\/20"] {
+    background-color: rgba(14, 165, 233, 0.1) !important;
+    border-color: rgba(14, 165, 233, 0.25) !important;
+    color: #0c4a6e !important;
+}
+
+html.light .border-t,
+html.light .border-b {
+    border-color: #e2e8f0 !important;
+}
+
+html.light .border-gray-800 {
+    border-color: #e2e8f0 !important;
+}
+
+html.light .border-gray-700 {
+    border-color: #cbd5e1 !important;
+}
+
+html.light .bg-gray-700 {
+    background-color: #e2e8f0 !important;
+}
+
+/* TTS toggle: checked state must override the bg-gray-700 rule above */
+html.light #tts-toggle:checked ~ .bg-gray-700 {
+    background-color: #0ea5e9 !important;
+}
+
+html.light #message-input {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #1e293b !important;
+}
+
+html.light #message-input::placeholder {
+    color: #94a3b8 !important;
+}
+
+html.light #message-input:focus {
+    border-color: #0ea5e9 !important;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15) !important;
+}
+
+html.light #send-btn {
+    background-color: #0ea5e9 !important;
+    color: #ffffff !important;
+}
+
+html.light #send-btn:hover {
+    background-color: #0284c7 !important;
+}
+
+html.light #mic-btn,
+html.light #file-btn {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+}
+
+html.light #mic-btn:hover,
+html.light #file-btn:hover {
+    border-color: #0ea5e9 !important;
+    background-color: #f1f5f9 !important;
+}
+
+html.light #mic-btn svg,
+html.light #file-btn svg {
+    color: #64748b !important;
+}
+
+html.light .text-gray-100 {
+    color: #1e293b !important;
+}
+
+html.light .text-gray-200 {
+    color: #334155 !important;
+}
+
+html.light .text-gray-300 {
+    color: #475569 !important;
+}
+
+html.light .text-gray-400 {
+    color: #64748b !important;
+}
+
+html.light #typing-indicator .text-gray-400 {
+    color: #64748b !important;
+}
+
+html.light .typing-dots .dot {
+    background-color: #0ea5e9 !important;
+}
+
+html.light #file-preview-bar > div {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    color: #334155 !important;
+}
+
+html.light .bg-jarvis-surface {
+    background-color: #f1f5f9 !important;
+}
+
+html.light .bg-jarvis-dark {
+    background-color: #f8fafc !important;
+}
+
+html.light .bg-jarvis-darker {
+    background-color: #ffffff !important;
+}
+
+/* Settings modal */
+html.light #settings-modal > div:last-child {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+}
+
+html.light #settings-modal h3 {
+    color: #1e293b !important;
+}
+
+html.light #settings-modal .text-gray-400 {
+    color: #64748b !important;
+}
+
+html.light #settings-modal select {
+    background-color: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #1e293b !important;
+}
+
+html.light #system-status {
+    background-color: #f8fafc !important;
+    color: #64748b !important;
+}
+
+html.light pre {
+    background-color: #f1f5f9 !important;
+    color: #334155 !important;
+}
+
+html.light code {
+    background-color: #f1f5f9 !important;
+    color: #0ea5e9 !important;
+}
+
+html.light .bg-red-900\/30 {
+    background-color: rgba(239, 68, 68, 0.08) !important;
+    border-color: rgba(239, 68, 68, 0.25) !important;
+    color: #991b1b !important;
+}
+
+html.light ::-webkit-scrollbar-thumb {
+    background: #cbd5e1 !important;
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8 !important;
+}
+
+html.light a[href="/logout"] {
+    color: #64748b !important;
+}
+
+html.light a[href="/logout"]:hover {
+    color: #ef4444 !important;
+}
+
+/* Theme toggle icon color in light mode */
+html.light #theme-toggle svg {
+    color: #64748b !important;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     #sidebar {
