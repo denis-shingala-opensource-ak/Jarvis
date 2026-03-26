@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     LLM_HOST: str = ""
     LLM_MAX_TOKENS: int = 2048
     LLM_TEMPERATURE: float = 0.7
+    EMBEDDING_LLM_MODEL: str = ""
     SYSTEM_PROMPT: str = (
         "You are Jarvis, an intelligent and helpful voice assistant. "
         "Be concise, friendly, and precise. When responding to voice queries, "
@@ -38,7 +39,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = ""
 
     # Conversation
-    MAX_CONVERSATION_HISTORY: int = 20
+    MAX_CONVERSATION_HISTORY: int = 5
 
     # JWT
     JWT_SECRET_KEY: str = ""

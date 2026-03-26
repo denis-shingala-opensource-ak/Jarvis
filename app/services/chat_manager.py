@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 from app.core.config import settings
 from app.core.logging_config import logger
+from app.services.vector_embeddings import VectorEmbeddings
 from app.services.llm_service import create_llm_service, BaseLLMService
 from app.services.speech_service import SpeechService
 from app.models.schemas import ChatResponse
@@ -15,15 +16,28 @@ class ChatManager:
     def __init__(self):
         self.llm: BaseLLMService = create_llm_service()
         self.speech: SpeechService = SpeechService()
+        self.chromadb: VectorEmbeddings = VectorEmbeddings()
+
         # In-memory conversation cache: {conversation_id: [messages]}
         self._conversations: dict[str, list[dict]] = {}
 
     def _get_or_create_conversation(self, conversation_id: Optional[str] = None, user_id: str = None) -> str:
         """Return existing or create new conversation ID."""
-        self._conversations = get_conversations(user_id)
-        
+        # If conversation already in memory, reuse it
         if conversation_id and conversation_id in self._conversations:
             return conversation_id
+
+        # Load from DB
+        db_conversations = get_conversations(user_id)
+        self._conversations.update(db_conversations)
+
+        if conversation_id and conversation_id in self._conversations:
+            # Ensure system prompt exists for DB-loaded conversations
+            messages = self._conversations[conversation_id]
+            if not messages or messages[0].get("role") != "system":
+                messages.insert(0, {"role": "system", "content": settings.SYSTEM_PROMPT})
+            return conversation_id
+
         new_id = conversation_id or str(uuid.uuid4())
         self._conversations[new_id] = [
             {"role": "system", "content": settings.SYSTEM_PROMPT}
@@ -51,6 +65,33 @@ class ChatManager:
         # Add user message to history
         self._conversations[conv_id].append({"role": "user", "content": text})
 
+        # search the similar content from the vectordb (Chroma DB)
+        context = await self.chromadb.similarity_search(text, user_id, conv_id)
+        context = "\n".join(context)
+
+        if context:
+            prompt = f"""
+                You are a helpful AI assistant.
+
+                Answer the user's question using the retrieved context only when it is relevant and useful.
+                If the retrieved context is unrelated, ignore it.
+                If the question depends on information that is not present in the context, say you do not have enough information instead of guessing.
+                Do not fabricate details.
+
+                User question:
+                {text}
+
+                Retrieved context:
+                {context}
+
+                Provide a clear, direct answer.
+            """
+
+            self._conversations[conv_id].insert(0, {
+                "role": "user",
+                "content": prompt
+            })
+
         # Call LLM
         response_text = await self.llm.chat(self._conversations[conv_id])
 
@@ -63,6 +104,10 @@ class ChatManager:
         # Persist to DB
         save_message(conv_id, "user", text, user_id=user_id)
         save_message(conv_id, "assistant", response_text, user_id=user_id)
+
+        # store in vector DB
+        await self.chromadb.add(conv_id, "user", text, user_id)
+        await self.chromadb.add(conv_id, "assistant", response_text, user_id)
 
         # Optionally generate TTS
         audio_b64 = None

@@ -8,17 +8,10 @@
       "name": "Python Debugger: FastAPI",
       "type": "debugpy",
       "request": "launch",
-      "module": "uvicorn",
+      "program": "${workspaceFolder}/run.py",
+      "console": "externalTerminal",
       "args": ["app.main:app", "--reload"],
-      "jinja": true
-    },
-    {
-      "name": "Python Debugger: FastAPI",
-      "type": "debugpy",
-      "request": "launch",
-      "module": "uvicorn",
-      "args": ["main:app", "--reload"],
-      "jinja": true
+      "justMyCode": true
     }
   ]
 }
