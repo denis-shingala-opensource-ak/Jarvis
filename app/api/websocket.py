@@ -56,7 +56,8 @@ async def websocket_chat(websocket: WebSocket, user: ws_user_dependency):
                     text=msg.content,
                     conversation_id=msg.conversation_id or conversation_id,
                     tts_enabled=msg.tts_enabled,
-                    user_id=user.user_id
+                    user_id=user.user_id,
+                    files=msg.files
                 )
 
                 conversation_id = response.conversation_id

@@ -1,4 +1,6 @@
 """Request/response schemas and data models."""
+import base64
+
 from pydantic import BaseModel, Field
 from typing import Optional, Literal
 from datetime import datetime, timezone
@@ -45,11 +47,19 @@ class HealthResponse(BaseModel):
     tts_provider: str
 
 
+class RequestFile(BaseModel):
+    type: str = None
+    name: str = None
+    size: int = None
+    content: str = None
+
+
 class WebSocketMessage(BaseModel):
     type: Literal["text", "audio", "control"]
     content: Optional[str] = None
     conversation_id: Optional[str] = None
     tts_enabled: bool = True
+    files: Optional[list[RequestFile]] = None
 
 
 class JWTToken(BaseModel):

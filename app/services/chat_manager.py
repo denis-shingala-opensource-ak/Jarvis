@@ -1,14 +1,15 @@
 """Chat manager: orchestrates LLM calls with conversation context."""
-import uuid
+import base64, uuid, fitz
 from typing import Optional
 from datetime import datetime, timezone
+
 
 from app.core.config import settings
 from app.core.logging_config import logger
 from app.services.vector_embeddings import VectorEmbeddings
 from app.services.llm_service import create_llm_service, BaseLLMService
 from app.services.speech_service import SpeechService
-from app.models.schemas import ChatResponse
+from app.models.schemas import ChatResponse, RequestFile
 from app.models.database import get_conversation_history, get_conversations, save_message
 
 
@@ -44,6 +45,27 @@ class ChatManager:
         ]
         return new_id
 
+    def _extract_text(self, content: str, mime_type: str, filename: str) -> str:
+        """Extract text content from file bytes based on type."""
+        raw = base64.b64decode(content)
+
+        if mime_type and mime_type == "application/pdf":
+            text = ''
+            with fitz.open(stream=raw, filetype="pdf") as doc:
+                text: str = "\n".join(page.get_text() for page in doc)
+
+            return text.strip()
+
+        # For text-based files, try common encodings
+        for encoding in ("utf-8", "latin-1", "cp1252"):
+            try:
+                return raw.decode(encoding).strip()
+            except (UnicodeDecodeError, ValueError):
+                continue
+
+        logger.warning(f"Could not extract text from file: {filename}")
+        return ""
+
     def _trim_history(self, conversation_id: str):
         """Keep conversation within MAX_CONVERSATION_HISTORY limit."""
         messages = self._conversations[conversation_id]
@@ -58,12 +80,18 @@ class ChatManager:
         conversation_id: Optional[str] = None,
         tts_enabled: bool = False,
         user_id: Optional[int] = None,
+        files: Optional[list[RequestFile]] = None,
     ) -> ChatResponse:
         """Handle a text chat message."""
         conv_id = self._get_or_create_conversation(conversation_id, user_id)
 
         # Add user message to history
         self._conversations[conv_id].append({"role": "user", "content": text})
+
+        for file in files or []:
+            content = self._extract_text(file.content, file.type, file.name)
+            if content:
+                await self.chromadb.add(conv_id, "user", content, user_id)
 
         # search the similar content from the vectordb (Chroma DB)
         context = await self.chromadb.similarity_search(text, user_id, conv_id)

@@ -239,7 +239,7 @@ window.addEventListener("load", () => {
 
         // Send files as array of {name, type, size, base64}
         const filesToSend = pendingFiles.length > 0
-            ? pendingFiles.map(f => ({ name: f.name, type: f.type, size: f.size, base64: f.base64 }))
+            ? pendingFiles.map(f => ({ name: f.name, type: f.type, size: f.size, content: f.base64 }))
             : null;
 
         jarvisWS.sendText(text || "", {
