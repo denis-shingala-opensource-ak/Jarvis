@@ -1,6 +1,7 @@
 """WebSocket endpoint for real-time chat and voice communication."""
 import json
 import base64
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -52,27 +53,41 @@ async def websocket_chat(websocket: WebSocket, user: ws_user_dependency):
             if msg.type == "text":
                 # Send typing indicator
                 await manager.send_json(websocket, {"type": "typing", "status": True})
-                response = await chat_manager.chat_text(
+
+                # Stream response chunks
+                full_text = ""
+                async for event in chat_manager.chat_text_stream(
                     text=msg.content,
                     conversation_id=msg.conversation_id or conversation_id,
-                    tts_enabled=msg.tts_enabled,
                     user_id=user.user_id,
-                    files=msg.files
-                )
+                    files=msg.files,
+                ):
+                    if event["type"] == "conversation_id":
+                        conversation_id = event["conversation_id"]
+                        await manager.send_json(websocket, {
+                            "type": "stream_start",
+                            "conversation_id": conversation_id,
+                        })
+                    elif event["type"] == "chunk":
+                        await manager.send_json(websocket, {
+                            "type": "stream_chunk",
+                            "content": event["content"],
+                        })
+                    elif event["type"] == "done":
+                        full_text = event["full_text"]
 
-                conversation_id = response.conversation_id
+                # Generate TTS after streaming is complete (if enabled)
+                audio_b64 = None
+                if msg.tts_enabled:
+                    audio_b64 = await chat_manager.speech.synthesize_base64(full_text)
 
                 await manager.send_json(websocket, {"type": "typing", "status": False})
-                await manager.send_json(
-                    websocket,
-                    {
-                        "type": "text_response",
-                        "message": response.message,
-                        "conversation_id": response.conversation_id,
-                        "audio_base64": response.audio_base64,
-                        "timestamp": response.timestamp.isoformat(),
-                    },
-                )
+                await manager.send_json(websocket, {
+                    "type": "stream_end",
+                    "conversation_id": conversation_id,
+                    "audio_base64": audio_b64,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                })
 
             elif msg.type == "audio":
                 # Send typing indicator

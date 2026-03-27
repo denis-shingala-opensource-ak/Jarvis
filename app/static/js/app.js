@@ -183,6 +183,10 @@ window.addEventListener("load", () => {
         connectionStatus.textContent = connected ? "Connected" : "Disconnected";
     };
 
+    // Streaming state
+    let streamingBubble = null;
+    let streamingText = "";
+
     jarvisWS.onMessageCallback = (data) => {
         switch (data.type) {
             case "text_response":
@@ -190,7 +194,36 @@ window.addEventListener("load", () => {
                 hideTyping();
                 addMessage("assistant", data.message);
                 currentConversationId = data.conversation_id;
-                // Play TTS audio if available
+                if (data.audio_base64) {
+                    audioManager.playAudio(data.audio_base64);
+                }
+                loadConversations();
+                break;
+
+            case "stream_start":
+                hideTyping();
+                currentConversationId = data.conversation_id;
+                streamingText = "";
+                streamingBubble = addStreamingMessage();
+                break;
+
+            case "stream_chunk":
+                if (streamingBubble) {
+                    streamingText += data.content;
+                    streamingBubble.innerHTML = formatMessage(streamingText);
+                    messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
+                }
+                break;
+
+            case "stream_end":
+                hideTyping();
+                if (streamingBubble) {
+                    streamingBubble.classList.remove("streaming-cursor");
+                    streamingBubble.innerHTML = formatMessage(streamingText);
+                    streamingBubble = null;
+                    streamingText = "";
+                }
+                currentConversationId = data.conversation_id;
                 if (data.audio_base64) {
                     audioManager.playAudio(data.audio_base64);
                 }
@@ -277,6 +310,24 @@ window.addEventListener("load", () => {
         messagesEl.appendChild(wrapper);
 
         messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
+    }
+
+    function addStreamingMessage() {
+        hideWelcome();
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "flex justify-start";
+
+        const bubble = document.createElement("div");
+        const baseClasses = "max-w-[70%] rounded-2xl px-4 py-3 text-sm leading-relaxed";
+        bubble.className = `${baseClasses} bg-jarvis-surface2 border border-gray-700 text-gray-200`;
+        bubble.classList.add("streaming-cursor");
+
+        wrapper.appendChild(bubble);
+        messagesEl.appendChild(wrapper);
+        messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
+
+        return bubble;
     }
 
     function formatMessage(text) {

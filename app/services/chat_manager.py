@@ -1,6 +1,6 @@
 """Chat manager: orchestrates LLM calls with conversation context."""
 import base64, uuid, fitz
-from typing import Optional
+from typing import AsyncGenerator, Optional
 from datetime import datetime, timezone
 
 
@@ -148,6 +148,84 @@ class ChatManager:
             audio_base64=audio_b64,
             timestamp=datetime.now(timezone.utc),
         )
+
+    async def chat_text_stream(
+        self,
+        text: str,
+        conversation_id: Optional[str] = None,
+        user_id: Optional[int] = None,
+        files: Optional[list[RequestFile]] = None,
+    ) -> AsyncGenerator[dict, None]:
+        """Handle a text chat message with streaming response.
+
+        Yields dicts:
+          {"type": "conversation_id", "conversation_id": "..."}
+          {"type": "chunk", "content": "..."}
+          {"type": "done", "full_text": "..."}
+        """
+        conv_id = self._get_or_create_conversation(conversation_id, user_id)
+        yield {"type": "conversation_id", "conversation_id": conv_id}
+
+        # Add user message to history
+        self._conversations[conv_id].append({"role": "user", "content": text})
+
+        for file in files or []:
+            content = self._extract_text(file.content, file.type, file.name)
+            if content:
+                await self.chromadb.add(conv_id, "user", content, user_id)
+
+        # RAG context
+        context = await self.chromadb.similarity_search(text, user_id, conv_id)
+        context = "\n".join(context)
+
+        if context:
+            prompt = f"""
+                You are a helpful AI assistant.
+
+                Answer the user's question using the retrieved context only when it is relevant and useful.
+                If the retrieved context is unrelated, ignore it.
+                If the question depends on information that is not present in the context, say you do not have enough information instead of guessing.
+                Do not fabricate details.
+
+                User question:
+                {text}
+
+                Retrieved context:
+                {context}
+
+                Provide a clear, direct answer.
+            """
+
+            self._conversations[conv_id].insert(0, {
+                "role": "user",
+                "content": prompt
+            })
+
+        # Stream LLM response
+        full_text = ""
+        async for chunk in self.llm.chat_stream(self._conversations[conv_id]):
+            full_text += chunk
+            yield {"type": "chunk", "content": chunk}
+
+        if not full_text:
+            full_text = "I'm sorry, I couldn't generate a response. Please try again."
+            yield {"type": "chunk", "content": full_text}
+
+        # Add assistant response to history
+        self._conversations[conv_id].append(
+            {"role": "assistant", "content": full_text}
+        )
+        self._trim_history(conv_id)
+
+        # Persist to DB
+        save_message(conv_id, "user", text, user_id=user_id)
+        save_message(conv_id, "assistant", full_text, user_id=user_id)
+
+        # Store in vector DB
+        await self.chromadb.add(conv_id, "user", text, user_id)
+        await self.chromadb.add(conv_id, "assistant", full_text, user_id)
+
+        yield {"type": "done", "full_text": full_text}
 
     async def chat_voice(
         self,
