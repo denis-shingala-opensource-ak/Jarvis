@@ -52,13 +52,27 @@ async def websocket_chat(websocket: WebSocket, user: ws_user_dependency):
             if msg.type == "text":
                 # Send typing indicator
                 await manager.send_json(websocket, {"type": "typing", "status": True})
-                response = await chat_manager.chat_text(
+                
+                async for response in chat_manager.chat_text(
                     text=msg.content,
                     conversation_id=msg.conversation_id or conversation_id,
                     tts_enabled=msg.tts_enabled,
                     user_id=user.user_id,
                     files=msg.files
-                )
+                ):
+                    if response.final_response:
+                        continue
+
+                    await manager.send_json(
+                        websocket, 
+                        {
+                            "type": "async_response",
+                            "message": response.message,
+                            "conversation_id": response.conversation_id,
+                            "audio_base64": response.audio_base64,
+                            "timestamp": response.timestamp.isoformat(),
+                        }
+                    )
 
                 conversation_id = response.conversation_id
 

@@ -1,6 +1,6 @@
 """Chat manager: orchestrates LLM calls with conversation context."""
 import base64, uuid, fitz
-from typing import Optional
+from typing import AsyncGenerator, Optional
 from datetime import datetime, timezone
 
 
@@ -81,7 +81,7 @@ class ChatManager:
         tts_enabled: bool = False,
         user_id: Optional[int] = None,
         files: Optional[list[RequestFile]] = None,
-    ) -> ChatResponse:
+    ) -> AsyncGenerator[ChatResponse, None]:
         """Handle a text chat message."""
         conv_id = self._get_or_create_conversation(conversation_id, user_id)
 
@@ -121,7 +121,14 @@ class ChatManager:
             })
 
         # Call LLM
-        response_text = await self.llm.chat(self._conversations[conv_id])
+        response_text = ""
+        async for response in self.llm.chat_stream(self._conversations[conv_id]):
+            response_text += response
+            yield ChatResponse(
+                message=response,
+                conversation_id=conv_id,
+                timestamp=datetime.now(timezone.utc),
+            )
 
         # Add assistant response to history
         self._conversations[conv_id].append(
@@ -142,11 +149,12 @@ class ChatManager:
         if tts_enabled:
             audio_b64 = await self.speech.synthesize_base64(response_text)
 
-        return ChatResponse(
+        yield ChatResponse(
             message=response_text,
             conversation_id=conv_id,
             audio_base64=audio_b64,
             timestamp=datetime.now(timezone.utc),
+            final_response=True
         )
 
     async def chat_voice(

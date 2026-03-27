@@ -182,19 +182,25 @@ window.addEventListener("load", () => {
         connectionDot.className = `w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-red-500"}`;
         connectionStatus.textContent = connected ? "Connected" : "Disconnected";
     };
-
+    let async_started = false;
     jarvisWS.onMessageCallback = (data) => {
         switch (data.type) {
             case "text_response":
             case "voice_response":
                 hideTyping();
-                addMessage("assistant", data.message);
+                addMessage("assistant", data.message, false, true);
                 currentConversationId = data.conversation_id;
                 // Play TTS audio if available
                 if (data.audio_base64) {
                     audioManager.playAudio(data.audio_base64);
                 }
                 loadConversations();
+                async_started = false;
+                break;
+            case "async_response":
+                hideTyping();
+                addMessage("assistant", data.message);
+                async_started = true;
                 break;
 
             case "typing":
@@ -203,17 +209,20 @@ window.addEventListener("load", () => {
                 } else {
                     hideTyping();
                 }
+                async_started = false;
                 break;
 
             case "control_response":
                 currentConversationId = null;
                 clearMessages();
                 chatTitle.textContent = "New Conversation";
+                async_started = false;
                 break;
 
             case "error":
                 hideTyping();
                 addMessage("assistant", `Error: ${data.message}`, true);
+                async_started = false;
                 break;
         }
     };
@@ -255,28 +264,37 @@ window.addEventListener("load", () => {
         autoResize();
     }
 
-    function addMessage(role, content, isError = false) {
+    function addMessage(role, content, isError = false, isFinal = false) {
         hideWelcome();
 
-        const wrapper = document.createElement("div");
-        wrapper.className = `flex ${role === "user" ? "justify-end" : "justify-start"}`;
-
-        const bubble = document.createElement("div");
-        const baseClasses = "max-w-[70%] rounded-2xl px-4 py-3 text-sm leading-relaxed";
-
-        if (isError) {
-            bubble.className = `${baseClasses} bg-red-900/30 border border-red-800 text-red-300`;
-        } else if (role === "user") {
-            bubble.className = `${baseClasses} bg-jarvis-accent/20 border border-jarvis-accent/30 text-gray-100`;
+        if(async_started == false && isFinal == false) {
+            const wrapper = document.createElement("div");
+            wrapper.className = `flex ${role === "user" ? "justify-end" : "justify-start"}`;
+            
+            const bubble = document.createElement("div");
+            const baseClasses = "max-w-[70%] rounded-2xl px-4 py-3 text-sm leading-relaxed";
+            
+            if (isError) {
+                bubble.className = `${baseClasses} bg-red-900/30 border border-red-800 text-red-300`;
+            } else if (role === "user") {
+                bubble.className = `${baseClasses} bg-jarvis-accent/20 border border-jarvis-accent/30 text-gray-100`;
+            } else {
+                bubble.className = `${baseClasses} bg-jarvis-surface2 border border-gray-700 text-gray-200`;
+            }
+            bubble.innerHTML = formatMessage(content);
+            wrapper.appendChild(bubble);
+            messagesEl.appendChild(wrapper);
+    
+            messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
         } else {
-            bubble.className = `${baseClasses} bg-jarvis-surface2 border border-gray-700 text-gray-200`;
+            const lastDiv = messagesEl.lastElementChild;
+            if (lastDiv) {
+                const bubble = lastDiv.querySelector("div:last-child");
+                if (bubble) {
+                    bubble.innerHTML = isFinal ? content : bubble.innerHTML + formatMessage(content);
+                }
+            }
         }
-
-        bubble.innerHTML = formatMessage(content);
-        wrapper.appendChild(bubble);
-        messagesEl.appendChild(wrapper);
-
-        messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
     }
 
     function formatMessage(text) {

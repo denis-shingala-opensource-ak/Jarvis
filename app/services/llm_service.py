@@ -56,7 +56,6 @@ class OllamaLLMService(BaseLLMService):
                 model=self.model,
                 messages=messages,
                 stream=True,
-                format='json'
             )
             async for chunk in stream:
                 if chunk.message.content:

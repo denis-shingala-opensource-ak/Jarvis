@@ -29,6 +29,7 @@ class ChatResponse(BaseModel):
     conversation_id: str
     audio_base64: Optional[str] = None
     timestamp: datetime
+    final_response: Optional[bool] = False
 
 
 class ConversationSummary(BaseModel):

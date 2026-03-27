@@ -69,8 +69,6 @@ class JarvisWebSocket {
             return false;
         }
 
-        console.log(options);
-
         const message = {
             type: type,
             content: content,
