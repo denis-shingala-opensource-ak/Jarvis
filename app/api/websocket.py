@@ -95,10 +95,18 @@ async def websocket_chat(websocket: WebSocket, user: ws_user_dependency):
                 )
 
                 audio_bytes = base64.b64decode(msg.content)
-                response = await chat_manager.chat_voice(
+
+                async for response in chat_manager.chat_voice(
                     audio_bytes=audio_bytes,
                     conversation_id=msg.conversation_id or conversation_id,
-                )
+                ):
+                    if response.final_response:
+                        continue
+
+                    await manager.send_json(
+                        websocket, {"type": "translated_question", "status": True, "message": response.message}
+                    )
+
                 conversation_id = response.conversation_id
 
                 await manager.send_json(websocket, {"type": "typing", "status": False})

@@ -26,7 +26,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     message: str
-    conversation_id: str
+    conversation_id: Optional[str]
     audio_base64: Optional[str] = None
     timestamp: datetime
     final_response: Optional[bool] = False

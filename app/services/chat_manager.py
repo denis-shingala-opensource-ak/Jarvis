@@ -162,19 +162,31 @@ class ChatManager:
         audio_bytes: bytes,
         conversation_id: Optional[str] = None,
         user_id: Optional[int] = None,
-    ) -> ChatResponse:
+    ) -> AsyncGenerator[ChatResponse, None]:
         """Handle a voice message: STT -> LLM -> TTS."""
         # Transcribe audio to text
         transcribed_text = await self.speech.transcribe(audio_bytes)
         logger.info(f"Transcribed: {transcribed_text}")
 
+        # return first response as translated user's question
+        yield ChatResponse(
+            message= transcribed_text,
+            conversation_id=conversation_id,
+            timestamp=datetime.now(timezone.utc),
+            final_response=False
+        )
+
+        final_response: Optional[ChatResponse] = None
         # Chat with LLM (with TTS enabled for voice responses)
-        return await self.chat_text(
+        async for response in self.chat_text(
             text=transcribed_text,
             conversation_id=conversation_id,
             tts_enabled=True,
             user_id=user_id,
-        )
+        ):
+            if response.final_response:
+                final_response = response
+        yield final_response
 
     async def get_history(self, conversation_id: str) -> list[dict]:
         """Return conversation history from DB."""

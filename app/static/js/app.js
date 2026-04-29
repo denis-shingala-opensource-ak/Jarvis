@@ -203,6 +203,13 @@ window.addEventListener("load", () => {
                 async_started = true;
                 break;
 
+            case "translated_question":
+                hideTyping();
+                addMessage("user", data.message);
+                addMessage("assistant", "Thinking...");
+                async_started = true;
+                break;
+
             case "typing":
                 if (data.status) {
                     showTyping(data.message || "Jarvis is thinking...");
@@ -355,7 +362,7 @@ window.addEventListener("load", () => {
             conversationId: currentConversationId,
             ttsEnabled: true,
         });
-        addMessage("user", "[Voice message]");
+        // addMessage("user", "[Voice message]");
     };
 
     audioManager.onRecordingStart = () => {
